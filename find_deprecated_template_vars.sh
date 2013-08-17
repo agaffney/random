@@ -104,8 +104,7 @@ while read line; do
         match=$(echo "$line" | grep -o "$(ruby_tag $ruby_open)[^.@'\"][a-z0-9_A-Z]\+\." | head -n 1)
         if [ -n "$match" ]; then
                 var=$(echo "$match" | grep -o '[a-z0-9_A-Z]\+\.$' | sed -e 's:\.$::')
-                [[ $var =~ ^[0-9] ]] && continue
-                [ $var == "scope" ] && continue
+                [[ $var =~ '^([0-9]|scope|[A-Z])' ]] && continue
                 if ! contains "${defined_vars[@]}" $var; then
                         message $linenum "Non-instance variable (${var}) used as object: ${line}"
                 fi
