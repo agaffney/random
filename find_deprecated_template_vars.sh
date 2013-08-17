@@ -23,6 +23,8 @@ ruby_tag() {
         local ruby_open=$1
         if [ $ruby_open = 0 ]; then
                 echo '<%=\? *'
+        else
+                echo '^'
         fi
 }
 
@@ -83,18 +85,41 @@ while read line; do
                 IFS=$ORIG_IFS
         fi
         # Variable in 'if' statement
-        matches=$(echo "$line" | grep -o "$(ruby_tag $ruby_open)\(\(el\)\?if\|&&\|||\) *[a-z0-9_A-Z]\+[^a-z0-9_A-Z?(]")
+        matches=$(echo "$line" | grep -o "$(ruby_tag $ruby_open)\(el\)\?if *\(.*&&\|.*||\)\? *[a-z0-9_A-Z]\+[^a-z0-9_A-Z?(]")
         if [ -n "$matches" ]; then
                 IFS=$'\n'
                 found=0
                 for match in $matches; do
-                        var=$(echo "$match" | sed -e 's:^.*\([a-z0-9_A-Z]\+\)$:\1:')
+                        var=$(echo "$match" | grep -o '[a-z0-9_A-Z]\+ *$' | sed -e 's: \+::')
                         if ! contains "${defined_vars[@]}" $var; then
                                 found=1
                         fi
                 done
+                IFS=$ORIG_IFS
                 if [ $found = 1 ]; then
-                        message $linenum "If statement without instance variable"
+                        message $linenum "If statement without instance variable: ${line}"
                 fi
+        fi
+        # Variable used as object
+        match=$(echo "$line" | grep -o "$(ruby_tag $ruby_open)[^.@'\"][a-z0-9_A-Z]\+\." | head -n 1)
+        if [ -n "$match" ]; then
+                var=$(echo "$match" | grep -o '[a-z0-9_A-Z]\+\.$' | sed -e 's:\.$::')
+                [[ $var =~ ^[0-9] ]] && continue
+                [ $var == "scope" ] && continue
+                if ! contains "${defined_vars[@]}" $var; then
+                        message $linenum "Non-instance variable (${var}) used as object: ${line}"
+                fi
+        fi
+        # Variable used in function
+        matches=$(echo "$line" | grep -o "$(ruby_tag $ruby_open).*[a-z0-9](\([a-z0-9_A-Z]\+\))")
+        if [ -n "$matches" ]; then
+                IFS=$'\n'
+                for match in $matches; do
+                        var=$(echo "$match" | sed -e 's:^.*(\([a-z0-9_A-Z]\+\))$:\1:')
+                        if ! contains "${defined_vars[@]}" $var; then
+                                message $linenum "Non-instance variable (${var}) used in function: ${line}"
+                        fi
+                done
+                IFS=$ORIG_IFS
         fi
 done < $template
