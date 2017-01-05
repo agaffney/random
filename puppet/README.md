@@ -5,3 +5,6 @@ I wrote this script to identify variable accesses in templates that Puppet 3 wou
 
 #### check-indentation.py
 This script ensures indentation consistency in puppet manifests. It looks for lines containing corresponding opening/closing curly braces to have the same indentation, and for content inside those curly braces to be indented further than the lines containining the opening/closing curly braces.
+
+#### puppet-run.sh, puppet-pause.sh, and puppet-functions.sh
+These scripts are helpful wrappers for running puppet.
